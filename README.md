@@ -1,30 +1,45 @@
 # ChainWitness
 
-**An x402 client that pays specialist agents and independently verifies the on-chain receipt.**
+**A safety-gated x402 client that hires Scout, pays once, and verifies the USDG settlement on Robinhood Chain.**
 
-ChainWitness is a stage-gated research bot for a2a.family on Robinhood Chain. It discovers Scout's live quote, validates the quote against the agent card, signs one capped USDG EIP-3009 authorization only after explicit confirmation, then checks that the facilitator's receipt corresponds to a successful USDG transfer on-chain.
+ChainWitness discovers Scout's live offer, checks its HTTP 402 quote against the agent card, signs one capped EIP-3009 authorization only after exact operator confirmation, and independently verifies the resulting on-chain USDG transfer before reporting success.
 
-## Current proof status
+## Verified live result
 
-As of 2026-10-18, the read-only integration checks pass:
+**One real Scout call completed and its payment was verified on-chain.**
 
-- Scout's live card advertises 0.01 USDG and its unpaid HTTP 402 quote matches.
-- Robinhood Chain reports chain ID 4663.
-- The USDG EIP-712 domain separator matches the locally reconstructed `Global Dollar`, version `1` domain.
-- `transferWithAuthorization` resolves to a nonzero USDG facet.
-- 18 local tests cover quote validation, caps, authorization formatting, retry prevention and receipt matching.
+- Agent: Scout `grade_launches`
+- Quote and transfer: **0.010000 USDG** (10,000 base units)
+- Network: Robinhood Chain, chain ID **4663**
+- Payment method: EIP-3009 `transferWithAuthorization`
+- Receipt: [View on Blockscout](https://robinhoodchain.blockscout.com/tx/0x9bf2ef3529a35c3ee2c3e15fc548483e1b00bfa0a30231250153d6dec8f4fee9)
+- Block: `92149556`
+- Agent result: one launch graded by Scout; the response and live report were saved locally by ChainWitness.
 
-**No live paid call or transaction hash has been recorded yet.** Simulated reports and read-only preflight results do not satisfy the bounty's paid-call proof requirement.
+The receipt shows a successful USDG transfer from the separate test wallet to Scout. The facilitator submitted the authorization transaction, so the payer did not need ETH for gas. The transaction hash and transfer were independently inspected on Robinhood Chain.
+
+See [the proof record](docs/PAID_CALL_PROOF.md) for the receipt fields and verification procedure. A paid receipt proves settlement, not the accuracy or safety of Scout's research.
+
+## Safety design
+
+- **Quote binding:** validates the live Scout card, skill resource, pay-to address, token, network, amount and payment scheme before signing.
+- **Exact-only payment:** requires the `exact` EIP-3009 scheme; it never falls back to a transaction-hash payment.
+- **Human consent:** requires an interactive terminal and the exact quoted amount typed at the prompt.
+- **Hard caps:** refuses quotes above 0.011 USDG and applies a 0.012 USDG rolling daily journal cap.
+- **No blind retries:** if a request fails after signing, ChainWitness records an uncertain state and instructs the operator to inspect the journal and chain before any retry.
+- **Independent receipt verification:** checks the chain ID, transaction status, USDG contract, payer, recipient and exact amount.
 
 ## Requirements
 
 - Node.js 20.10 or newer
-- A fresh, separate EVM wallet for a later paid test; keep its key local
-- USDG for the quoted amount (Scout currently quotes 0.01 USDG). The exact/EIP-3009 path lets the facilitator submit the transaction, so the caller does not need ETH for gas.
+- A separate test wallet with enough USDG for the quoted amount
+- No ETH is required in the payer wallet for this verified EIP-3009 route; the facilitator submits the transaction and pays gas
 
-## Install and verify without paying
+Never place a private key or recovery phrase in chat, source code, committed `.env` files, screenshots, or a bounty submission.
 
-Open PowerShell in this project folder:
+## Install and run read-only checks
+
+Open PowerShell in the project folder:
 
 ```powershell
 npm ci
@@ -33,37 +48,37 @@ npm run inspect
 npm run exact-preflight
 ```
 
-`inspect` fetches the current Scout card and HTTP 402 quote. `exact-preflight` reads chain ID, USDG's domain separator and the EIP-3009 facet. Both are read-only; neither needs a key or wallet connection.
+- `inspect` fetches Scout's live card and unpaid HTTP 402 quote.
+- `exact-preflight` checks the Robinhood Chain ID, USDG EIP-712 domain separator and EIP-3009 facet.
+- Both commands are read-only and do not need a private key or a funded wallet.
 
-Check any public address without signing:
+Check a public address without signing:
 
 ```powershell
 npm run wallet -- --address 0xYOUR_PUBLIC_ADDRESS
 ```
 
-## Later: one paid Scout call
+## Optional: make another paid Scout call
 
-Configure `ROBINHOOD_PRIVATE_KEY` only in the local PowerShell process after confirming the wallet is a fresh, separate test wallet and holds no more than the intended test amount. Never put a key or recovery phrase in chat, source code, `.env` committed to GitHub, screenshots or the submission.
-
-The one-call command is deliberately gated:
+The live call above already satisfies the one-call demonstration. Running this command again creates **another real payment**. Only do so intentionally, with a funded test wallet, a locally configured key, and the exact interactive confirmation:
 
 ```powershell
 npm run scout-once -- --yes-pay-real-money
 ```
 
-It refuses non-`exact` schemes, quotes above 0.011 USDG, insufficient balance, and noninteractive execution. It then asks the operator to type the exact amount before signing. The daily journal has a 0.012 USDG cap. If the request fails after signing, inspect `out/payment-journal.json` and the chain before attempting anything again; do not retry an unknown settlement.
+If the request fails after signing, inspect `out/payment-journal.json` and the chain before attempting another payment. Do not retry an unknown settlement.
 
-The two-agent `live` command remains disabled until the one-call flow has been verified end to end.
+The two-agent `live` command remains disabled.
 
 ## Verify a transaction without a key
 
-After obtaining a transaction hash, anyone can verify the successful Robinhood Chain receipt and matching USDG `Transfer` event:
+Anyone can independently verify a USDG payment receipt without a private key:
 
 ```powershell
 npm run verify-receipt -- --hash 0xTRANSACTION_HASH --from 0xPAYER_ADDRESS --to 0xSCOUT_PAYTO --amount-usdg 0.01
 ```
 
-This command is read-only and requires no private key. It checks chain ID, receipt status, token contract, payer, payee and amount, then prints a Blockscout link.
+The command checks chain ID, receipt status and the matching USDG `Transfer` event, then prints a Blockscout link.
 
 ## Demo
 
@@ -71,27 +86,20 @@ This command is read-only and requires no private key. It checks chain ID, recei
 npm run demo
 ```
 
-The demo is a clearly labeled simulation. It is useful for reviewing report layout but is **not** a live payment and must never be submitted as transaction evidence.
+The demo is a clearly labeled simulation. It is useful for reviewing the report layout but is **not** a live payment and must not be submitted as transaction evidence.
 
-## Payment scheme notes
+## Bounty evidence checklist
 
-The latest read-only Scout inspection returned `scheme: exact`, and the latest `exact-preflight` confirmed the USDG EIP-712 domain and a nonzero `transferWithAuthorization` facet on chain 4663. Those facts show that the token can support the authorization format; they do **not** prove that a2a.family's facilitator accepts ChainWitness's signed payload.
-
-The public a2a.family docs are internally inconsistent: the Pay with x402 section and whitepaper describe EIP-3009 `exact`, while another docs paragraph describes direct transfer plus `txHash`. Treat the live 402 challenge as authoritative for each call and stop if its requirements do not match the implementation. ChainWitness currently implements only `exact`; it must not silently fall back to `a2a-tx`.
-
-## Bounty entry checklist
-
-- [ ] Public GitHub repository
-- [ ] One successful paid a2a.family call
-- [ ] Transaction hash independently verified on Robinhood Chain
-- [ ] Short demonstration showing the quote, consent gate, agent response and receipt
-- [ ] Submission link and transaction hash entered on the bounty page
+- [x] Public GitHub repository
+- [x] Successful paid Scout call
+- [x] Transaction hash independently verified on Robinhood Chain
+- [ ] Public demo post and bounty-page submission
 
 ## References
 
-- [a2a.family docs](https://a2a.family/docs/)
+- [a2a.family x402 docs](https://a2a.family/docs/)
 - [a2a.family technical paper](https://a2a.family/docs/whitepaper/)
-- [Bounty page](https://a2a.family/bounties/)
+- [a2a.family bounty page](https://a2a.family/bounties/)
 - [USDG EIP-3009 verification implementation](https://github.com/nirholas/robinhood-chain-x402)
 - [Security model](docs/SECURITY.md)
 - [What is real versus simulated](docs/REAL_VS_SIMULATED.md)

@@ -1,0 +1,23 @@
+{
+  "name": "chainwitness-a2a",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.10"
+  },
+  "scripts": {
+    "inspect": "node src/cli.mjs inspect",
+    "wallet": "node src/cli.mjs wallet",
+    "scout-once": "node src/cli.mjs scout-once",
+    "demo": "node src/cli.mjs demo",
+    "live": "node src/cli.mjs live",
+    "test": "node --test",
+    "exact-preflight": "node src/cli.mjs exact-preflight",
+    "verify-receipt": "node src/cli.mjs verify-receipt"
+  },
+  "dependencies": {
+    "viem": "^2.38.0"
+  },
+  "description": "Stage-gated gasless EIP-3009 x402 paid Scout bot for Robinhood Chain"
+}

@@ -1,0 +1,18 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {parseOffer,validate402,usdAtomic,atomicUsd,requireEvm,candidateFrom,assess,USDG,proofHeader} from '../src/core.mjs';
+const address='0x'+'a'.repeat(40);
+const card={name:'Scout',url:'https://api.a2a.family/a/scout/a2a',skills:[{id:'grade_launches'}],extensions:[{uri:'https://a2a.family/ext/x402',params:{payTo:address,accepts:['USDG'],skills:{grade_launches:{price:'0.01',resource:'https://api.a2a.family/a/scout/v1/grade_launches'}}}}]};
+const offer=parseOffer(card,'scout','grade_launches');
+const response={status:402,data:{accepts:[{scheme:'exact',network:'robinhood',maxAmountRequired:'10000',asset:USDG,payTo:address}]}};
+test('card price, known route',()=>{assert.equal(offer.price,10000n);assert.equal(offer.url,'https://api.a2a.family/a/scout/v1/grade_launches')});
+test('valid USDG quote',()=>{const x=validate402(response,offer);assert.equal(x.amount,10000n);assert.equal(x.payTo,address)});
+test('malicious redirected recipient fails closed',()=>assert.throws(()=>validate402({status:402,data:{accepts:[{...response.data.accepts[0],payTo:'0x'+'1'.repeat(40)}]}},offer),/Pay-to/));
+test('overpricing fails',()=>assert.throws(()=>validate402({status:402,data:{accepts:[{...response.data.accepts[0],maxAmountRequired:'11000'}]}},offer),/Overpriced/));
+test('payment cap is independent from price',()=>assert.throws(()=>validate402(response,offer,{cap:'0.001'}),/cap/));
+test('wrong chain and wrong token fail',()=>assert.throws(()=>validate402({status:402,data:{accepts:[{...response.data.accepts[0],network:'ethereum'}]}},offer),/No Robinhood/));
+test('decimal exact conversion',()=>{assert.equal(usdAtomic('0.030000'),30000n);assert.equal(atomicUsd(20000n),'0.020000');assert.throws(()=>usdAtomic('0.1234567'))});
+test('candidate extraction rejects truncated addresses',()=>{assert.equal(candidateFrom({launches:[{token:'0x'+'1'.repeat(40)}]}),'0x'+'1'.repeat(40));assert.equal(candidateFrom({address:'0x0000…ffff'}),null)});
+test('returns conservative review even with clean agent response',()=>assert.equal(assess({safe:true},'0x6060').status,'REVIEW'));
+test('proof header contains hash',()=>{const hash='0x'+'1'.repeat(64);const decoded=JSON.parse(Buffer.from(proofHeader(hash),'base64').toString());assert.equal(decoded.payload.txHash,hash)});
+test('rejects unsafe EVM address',()=>assert.throws(()=>requireEvm('0x123')));

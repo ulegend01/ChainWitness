@@ -18,7 +18,7 @@ ChainWitness discovers Scout's live offer, checks its HTTP 402 quote against the
 
 The receipt shows a successful USDG transfer from the separate test wallet to Scout. The facilitator submitted the authorization transaction, so the payer did not need ETH for gas. The transaction hash and transfer were independently inspected on Robinhood Chain.
 
-See [the proof record](docs/PAID_CALL_PROOF.md) for the receipt fields and verification procedure. A paid receipt proves settlement, not the accuracy or safety of Scout's research.
+See [the proof record](docs/PAID_CALL_PROOF.md) for receipt fields and verification steps. The [reviewer walkthrough](docs/REVIEWER_WALKTHROUGH.md) explains the payment flow and includes a key-free verification command. A paid receipt proves settlement, not the accuracy or safety of Scout's research.
 
 ## Safety design
 
@@ -81,6 +81,10 @@ npm run verify-receipt -- --hash 0xTRANSACTION_HASH --from 0xPAYER_ADDRESS --to 
 The command checks chain ID, receipt status and the matching USDG `Transfer` event, then prints a Blockscout link.
 
 ## Demo
+
+See the [75-second safe recording script](docs/DEMO_SCRIPT.md) for a guided review using the existing transaction. It makes no payment and uses no private key.
+
+The local fixture demo is also available:
 
 ```powershell
 npm run demo

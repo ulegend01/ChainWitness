@@ -20,6 +20,13 @@ async function inspect(){
  if(target){requireEvm(target);const p=await preflight('sentinel','scan_contract',{token:target},{cap});console.log(JSON.stringify({agent:'Sentinel',advertisedUSD:atomicUsd(p.offer.price),quotedUSDG:atomicUsd(p.payment.amount),payTo:p.payment.payTo,resource:p.url,scheme:p.payment.scheme},null,2))}
  console.log('INSPECTION PASSED. NO PAYMENT SENT.');
 }
+async function inspectSentinel(){
+ const token=requireEvm(arg('--token',null));
+ console.log('Inspecting Sentinel Agent Card and HTTP 402 quote. No wallet is used.');
+ const s=await preflight(sentinel.slug,sentinel.skill,{token},{cap:'0.02'});
+ console.log(JSON.stringify({agent:'Sentinel',advertisedUSD:atomicUsd(s.offer.price),quotedUSDG:atomicUsd(s.payment.amount),payTo:s.payment.payTo,resource:s.url,scheme:s.payment.scheme},null,2));
+ console.log('INSPECTION PASSED. NO PAYMENT SENT.');
+}
 async function demo(){
  const scoutPaid={agent:'Scout',response:{launches:[{token:'0x'+'1'.repeat(40),grade:'B'}]},transaction:null};
  const sentinelPaid={agent:'Sentinel',response:{warnings:['Owner privileges need review']},transaction:null};
@@ -64,14 +71,42 @@ async function oneScout(){
   console.log('Saved:',await writeReport({mode:'LIVE',token:'DISCOVERY ONLY',scout:paid,assessment:{status:'REVIEW',reason:'One paid discovery call was verified. No independent token safety verdict.'}}));
  }catch(e){console.error('Payment proof or response failed. DO NOT repeat authorization; see out/payment-journal.json.');throw e}
 }
+async function oneSentinel(){
+ if(!args.includes('--yes-pay-real-money'))throw Error('Specify --yes-pay-real-money to enable ONE exact/EIP-3009 Sentinel authorization');
+ const token=requireEvm(arg('--token',null));
+ const sp=await preflight(sentinel.slug,sentinel.skill,{token},{cap:'0.02'});
+ if(sp.payment.scheme!=='exact')throw Error('Live Sentinel quote is not exact/EIP-3009. No authorization created.');
+ if(sp.payment.amount!==sp.offer.price)throw Error('Sentinel quote differs from advertised price. No authorization created.');
+ if(sp.payment.amount>20000n)throw Error('Refuse Sentinel amount above 0.020000 USDG');
+ console.log('ONE-CALL, EIP-3009 EXACT: Sentinel scan_contract only.');
+ console.log(`Token ${token}; quote ${atomicUsd(sp.payment.amount)} USDG, recipient ${sp.payment.payTo}, chain 4663.`);
+ console.log('One exact human approval is required. The facilitator must submit and settle the payment.');
+ if(!process.stdin.isTTY)throw Error('Interactive terminal required');
+ const input=createInterface({input:process.stdin,output:process.stdout});
+ let answer;
+ try{answer=await input.question(`To authorize exactly ONE USDG payment, type: PAY ${atomicUsd(sp.payment.amount)} USDG > `)}finally{input.close()}
+ if(answer.trim()!==`PAY ${atomicUsd(sp.payment.amount)} USDG`)throw Error('Canceled before signing');
+ const signer=await createExactSigner();
+ const journal=new Journal('out/payment-journal.json');await journal.open();
+ const id=randomUUID();
+ console.log(`Signing wallet ${signer.address}. Your private key remains local.`);
+ try{
+  const paid=await buyExact(sp,signer,journal,id,{daily:'0.02',maxAmount:20000n});
+  console.log('REAL SETTLEMENT VERIFIED:',paid.transaction.explorer);
+  console.log('Sentinel result:',JSON.stringify(paid.response,null,2));
+  console.log('Saved:',await writeReport({mode:'LIVE_SENTINEL',token,sentinel:paid,assessment:{status:'UNASSESSED',reason:'Sentinel report is informational and is not an independent contract-safety verdict.'}}));
+ }catch(e){console.error('Payment proof or response failed. DO NOT repeat authorization; see out/payment-journal.json.');throw e}
+}
 async function live(){throw Error('Two-payment mainnet command DISABLED until the one-call exact/EIP-3009 route is verified.');}
 try{
  if(command==='inspect')await inspect();
+ else if(command==='inspect-sentinel')await inspectSentinel();
+ else if(command==='sentinel-once')await oneSentinel();
  else if(command==='demo')await demo();
  else if(command==='wallet')await walletCheck();
  else if(command==='exact-preflight'){console.log('VERIFYING EIP-3009 USDG SUPPORT, READ ONLY.');console.log(JSON.stringify(await verifyExactCapability(),null,2));}
  else if(command==='verify-receipt')await verifyReceipt();
  else if(command==='scout-once')await oneScout();
  else if(command==='live')await live();
- else console.log('ChainWitness\n npm run inspect -- --token 0x... (NO PAYMENT)\n npm run wallet -- --address 0x... (READ ONLY)\n npm run exact-preflight (READ ONLY)\n npm run verify-receipt -- --hash 0x... --from 0x... --to 0x... --amount-usdg 0.01 (READ ONLY)\n npm run scout-once -- --yes-pay-real-money (ONE REAL PAYMENT)\n npm run demo (SIMULATED)\n npm run live -- --token 0x... --yes-pay-real-money (DISABLED, awaiting verified Scout call)\n npm test');
+ else console.log('ChainWitness\n npm run inspect -- --token 0x... (Scout, READ ONLY)\n npm run inspect-sentinel -- --token 0x... (Sentinel, READ ONLY)\n npm run wallet -- --address 0x... (READ ONLY)\n npm run exact-preflight (READ ONLY)\n npm run verify-receipt -- --hash 0x... --from 0x... --to 0x... --amount-usdg 0.01 (READ ONLY)\n npm run scout-once -- --yes-pay-real-money (ONE PAYMENT, capped at 0.011 USDG)\n npm run sentinel-once -- --token 0x... --yes-pay-real-money (ONE PAYMENT, capped at 0.020 USDG)\n npm run demo (SIMULATED)\n npm run live -- --token 0x... --yes-pay-real-money (DISABLED)\n npm test');
 }catch(e){console.error('STOP:',e.message);process.exitCode=1}

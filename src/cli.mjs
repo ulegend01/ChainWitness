@@ -12,6 +12,7 @@ const target=arg('--token',null);
 const cap=process.env.MAX_PER_CALL_USDG||'0.03';
 const daily=process.env.MAX_PER_DAY_USDG||'0.10';
 const scout={slug:'scout',skill:'grade_launches',params:{n:5}};
+const sentinel={slug:'sentinel',skill:'scan_contract'};
 async function inspect(){
  console.log('Inspecting Scout Agent Card and HTTP 402 quote. No wallet is used.');
  const s=await preflight(scout.slug,scout.skill,scout.params,{cap});

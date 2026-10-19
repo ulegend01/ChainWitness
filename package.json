@@ -8,6 +8,8 @@
   },
   "scripts": {
     "inspect": "node src/cli.mjs inspect",
+    "inspect-sentinel": "node src/cli.mjs inspect-sentinel",
+    "sentinel-once": "node src/cli.mjs sentinel-once",
     "wallet": "node src/cli.mjs wallet",
     "scout-once": "node src/cli.mjs scout-once",
     "demo": "node src/cli.mjs demo",

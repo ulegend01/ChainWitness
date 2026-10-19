@@ -38,7 +38,7 @@ See [the proof record](docs/PAID_CALL_PROOF.md) for receipt fields and verificat
 
 - Node.js 20.10 or newer
 - A separate test wallet with enough USDG for the quoted amount
-- No ETH is required in the payer wallet for this verified EIP-3009 route; the facilitator submits the transaction and pays gas
+- The verified Scout call required no payer ETH; Sentinel-specific facilitator settlement remains unverified until its receipt is confirmed
 
 Never place a private key or recovery phrase in chat, source code, committed `.env` files, screenshots, or a bounty submission.
 

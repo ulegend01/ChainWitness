@@ -4,6 +4,10 @@
 
 ChainWitness discovers Scout's live offer, checks its HTTP 402 quote against the agent card, signs one capped EIP-3009 authorization only after exact operator confirmation, and independently verifies the resulting on-chain USDG transfer before reporting success.
 
+## Demo video
+
+[Watch the video and public X post](<https://x.com/uledjend/status/2111979061144629432>). The project source and independently verifiable on-chain receipt are linked below.
+
 ## Verified live result
 
 **One real Scout call completed and its payment was verified on-chain.**
@@ -97,7 +101,8 @@ The demo is a clearly labeled simulation. It is useful for reviewing the report 
 - [x] Public GitHub repository
 - [x] Successful paid Scout call
 - [x] Transaction hash independently verified on Robinhood Chain
-- [ ] Public demo post and bounty-page submission
+- [x] Public demo post: [X video post](<https://x.com/uledjend/status/2111979061144629432>)
+- [ ] Bounty-page submission
 
 ## References
 

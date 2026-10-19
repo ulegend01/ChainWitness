@@ -80,7 +80,7 @@ async function oneSentinel(){
  if(sp.payment.amount>20000n)throw Error('Refuse Sentinel amount above 0.020000 USDG');
  console.log('ONE-CALL, EIP-3009 EXACT: Sentinel scan_contract only.');
  console.log(`Token ${token}; quote ${atomicUsd(sp.payment.amount)} USDG, recipient ${sp.payment.payTo}, chain 4663.`);
- console.log('One exact human approval is required. The facilitator must submit and settle the payment.');
+ console.log('One exact approval is required. Sentinel settlement behavior is unverified until the chain receipt is confirmed.');
  if(!process.stdin.isTTY)throw Error('Interactive terminal required');
  const input=createInterface({input:process.stdin,output:process.stdout});
  let answer;

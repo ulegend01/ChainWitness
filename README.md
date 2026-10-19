@@ -95,11 +95,9 @@ npm run verify-receipt -- --hash 0xTRANSACTION_HASH --from 0xPAYER_ADDRESS --to 
 
 The command checks chain ID, receipt status and the matching USDG `Transfer` event, then prints a Blockscout link.
 
-## Demo
+## Local simulation
 
-See the [75-second safe recording script](docs/DEMO_SCRIPT.md) for a guided review using the existing transaction. It makes no payment and uses no private key.
-
-The local fixture demo is also available:
+For a no-payment local report preview, run the fixture demo:
 
 ```powershell
 npm run demo

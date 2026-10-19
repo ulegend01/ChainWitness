@@ -109,10 +109,11 @@ export async function createExactSigner(){
   }
  };
 }
-export async function buyExact(preflight,signer,journal,id,{daily='0.012',requester=requestJson}={}){
+export async function buyExact(preflight,signer,journal,id,{daily='0.012',maxAmount=11000n,requester=requestJson}={}){
  if(preflight.payment.scheme!=='exact')throw Error('Expected exact/EIP-3009 payment quote; no funds authorized');
  const amt=preflight.payment.amount;
- if(amt>11000n)throw Error('One-call price cap exceeded');
+ if(typeof maxAmount!=='bigint'||maxAmount<=0n)throw Error('Invalid one-call payment cap');
+ if(amt>maxAmount)throw Error('One-call price cap exceeded');
  const balance=await signer.balance();
  if(balance<amt)throw Error('Insufficient USDG to authorize payment');
  const auth=buildAuthorization(signer.address,preflight.payment.payTo,amt);

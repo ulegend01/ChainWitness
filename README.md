@@ -1,8 +1,8 @@
 # ChainWitness
 
-**A safety-gated x402 client that hires Scout, pays once, and verifies the USDG settlement on Robinhood Chain.**
+**A safety-gated x402 client that hires Scout or Sentinel and verifies USDG settlement on Robinhood Chain.**
 
-ChainWitness discovers Scout's live offer, checks its HTTP 402 quote against the agent card, signs one capped EIP-3009 authorization only after exact operator confirmation, and independently verifies the resulting on-chain USDG transfer before reporting success.
+ChainWitness discovers an agent's live offer, checks its HTTP 402 quote against the agent card, signs one capped EIP-3009 authorization only after exact operator confirmation, and independently verifies the resulting on-chain USDG transfer before reporting success.
 
 ## Demo video
 
@@ -32,6 +32,7 @@ See [the proof record](docs/PAID_CALL_PROOF.md) for receipt fields and verificat
 - **Hard caps:** refuses quotes above 0.011 USDG and applies a 0.012 USDG rolling daily journal cap.
 - **No blind retries:** if a request fails after signing, ChainWitness records an uncertain state and instructs the operator to inspect the journal and chain before any retry.
 - **Independent receipt verification:** checks the chain ID, transaction status, USDG contract, payer, recipient and exact amount.
+- **Sentinel route:** adds a separate `scan_contract` call with a required token address, exact price binding, a 0.020000 USDG per-call ceiling, a 0.020000 USDG daily journal cap and the same explicit confirmation gate. It refuses changed or non-`exact` quotes.
 
 ## Requirements
 
@@ -49,10 +50,12 @@ Open PowerShell in the project folder:
 npm ci
 npm test
 npm run inspect
+npm run inspect-sentinel -- --token 0xYOUR_TOKEN_ADDRESS
 npm run exact-preflight
 ```
 
 - `inspect` fetches Scout's live card and unpaid HTTP 402 quote.
+- `inspect-sentinel` fetches Sentinel's `scan_contract` card and unpaid HTTP 402 quote for the supplied token.
 - `exact-preflight` checks the Robinhood Chain ID, USDG EIP-712 domain separator and EIP-3009 facet.
 - Both commands are read-only and do not need a private key or a funded wallet.
 
@@ -62,7 +65,7 @@ Check a public address without signing:
 npm run wallet -- --address 0xYOUR_PUBLIC_ADDRESS
 ```
 
-## Optional: make another paid Scout call
+## Optional live calls
 
 The live call above already satisfies the one-call demonstration. Running this command again creates **another real payment**. Only do so intentionally, with a funded test wallet, a locally configured key, and the exact interactive confirmation:
 
@@ -70,7 +73,15 @@ The live call above already satisfies the one-call demonstration. Running this c
 npm run scout-once -- --yes-pay-real-money
 ```
 
-If the request fails after signing, inspect `out/payment-journal.json` and the chain before attempting another payment. Do not retry an unknown settlement.
+A separate Sentinel call is available with the same one-call approval gate and a strict 0.020000 USDG ceiling:
+
+```powershell
+npm run sentinel-once -- --token 0xYOUR_TOKEN_ADDRESS --yes-pay-real-money
+```
+
+The Sentinel quote must exactly match its advertised price and use the `exact` scheme. The token address is required. The live Sentinel payment has **not** been executed or verified yet; a new successful receipt is required before claiming it as a second live entry.
+
+If a request fails after signing, inspect `out/payment-journal.json` and the chain before attempting another payment. Do not retry an unknown settlement.
 
 The two-agent `live` command remains disabled.
 
@@ -97,6 +108,8 @@ npm run demo
 The demo is a clearly labeled simulation. It is useful for reviewing the report layout but is **not** a live payment and must not be submitted as transaction evidence.
 
 ## Bounty evidence checklist
+
+The verified Scout call is entry one. The Sentinel route is a distinct second build path; it is not bounty-valid until it has its own successful paid-call receipt.
 
 - [x] Public GitHub repository
 - [x] Successful paid Scout call
